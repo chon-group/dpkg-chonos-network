@@ -1,0 +1,9 @@
+#!/bin/bash
+if [ -f /etc/rc.local ]
+then
+    cat /etc/rc.local | grep -v "exit 0" | grep -v "chonos-nettest" > /tmp/rc.local
+    #echo "/usr/bin/chonos-nettest &" >> /tmp/rc.local
+    echo "exit 0" >> /tmp/rc.local
+    cat /tmp/rc.local > /etc/rc.local
+    #chmod +x /etc/rc.local
+fi

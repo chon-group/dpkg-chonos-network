@@ -1,0 +1,173 @@
+#! /bin/sh
+EmbedMAS_HOME=/opt/chonos-embMAS
+#EmbedMAS_HOME=/root/chonos-netmng/opt/chonos-embMAS
+EmbedMAS_TMP=/tmp/.embedMAS
+EmbedMAS_LOGFILE=$EmbedMAS_TMP/embeddedMAS.log
+mkdir -p $EmbedMAS_TMP
+
+#Desativando o Modo Avião
+rfkill unblock all
+
+#Identificando o MAC
+wlanInterface=`iwconfig 2> /dev/null | xargs | cut -d " " -f 1`
+macInterface=`ifconfig $wlanInterface | grep ether | xargs | cut -d " " -f 2`
+echo "$wlanInterface;$macInterface" > $EmbedMAS_HOME/conf/wlanInterface.conf
+
+while getopts h:f:m:c:e:k:d:-: flag
+do
+    case "${flag}" in
+        f) confFile=${OPTARG};;
+        m) modeOperation=${OPTARG};;
+        c) ch=${OPTARG};;
+        e) name=${OPTARG};;
+        k) key=${OPTARG};;
+		d) driver=${OPTARG};;
+        -) opt=${OPTARG};;
+    esac
+done
+
+
+if [ "$opt" = "help" ]; then
+	cat $EmbedMAS_HOME/docs/scripts/chonosWifiConf.txt
+elif [ "$opt" = "forget" ]; then
+	rm $EmbedMAS_HOME/conf/WLANs/lan_*.conf 2>/dev/null
+	 echo -n "{"
+        echo -n " \"message\":\"Esquecer Redes\","
+        echo -n "  \"success\":\"true\""
+    echo  "}"
+
+elif [ "$opt" = "list" ]; then
+	qtd=`cat $EmbedMAS_HOME/conf/WLANs/lan_*.conf 2> /dev/null | grep "network=" | nl | tail -1 | xargs | cut -d " " -f 1`
+	echo "[" > $EmbedMAS_TMP/json.out
+		i=2
+		while [ $i -le $((qtd+1)) ]; do
+			essid=`cat $EmbedMAS_HOME/conf/WLANs/lan_*.conf | xargs | cut -d "{" -f $i | xargs | cut -d " " -f 1 | cut -d "=" -f 2`
+			echo "{" >> $EmbedMAS_TMP/json.out
+			echo "\"essid\": \"$essid\"," >> $EmbedMAS_TMP/json.out    
+			key=`cat $EmbedMAS_HOME/conf/WLANs/lan_*.conf | xargs | cut -d "{" -f $i | xargs | cut -d " " -f 2 | cut -d "=" -f 2`
+			echo "\"pass\": \"$key\"" >> $EmbedMAS_TMP/json.out
+			
+			if [ $i -le $((qtd)) ]; then
+				echo "}," >> $EmbedMAS_TMP/json.out
+			else
+				echo "}" >> $EmbedMAS_TMP/json.out
+			fi
+			i=$((i+1))  
+		done
+	echo "]" >> $EmbedMAS_TMP/json.out
+	cat $EmbedMAS_TMP/json.out
+fi
+
+######################## Mode Operation #####################################
+if [ "$modeOperation" = "ap" ]; then
+	macInterface=`cat $EmbedMAS_HOME/conf/wlanInterface.conf | cut -d ";" -f 2 | sed 's,:,-,g'`
+	op1='random'
+	op2="EmbeddedMAS($macInterface)"
+	op3='NONE'
+
+	if [ "$ch" != "" ]; then
+		op1=$ch
+	fi
+
+	if [ "$name" != "" ]; then
+		op2=$name
+	fi
+
+	if [ "$key" != "" ]; then
+		op3=$key
+	fi
+
+	echo 1 > $EmbedMAS_HOME/conf/apMode.conf
+	$EmbedMAS_HOME/bin/lan/wpa_file_generator.sh -c $op1 -e $op2 -k $op3
+
+	echo "Agendando AP WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
+	/usr/bin/chonos-taskNew "/usr/bin/chonosWifiConf -f apmode"
+
+	#Consultando informações
+	echo -n "{" > $EmbedMAS_TMP/json.out
+        echo  " \"message\":\"AP Mode ON\"," >> $EmbedMAS_TMP/json.out
+		echo  "  \"essid\":\"$op2\"," >> $EmbedMAS_TMP/json.out
+		echo  "  \"key\":\"$op3\"," >> $EmbedMAS_TMP/json.out
+        echo -n "  \"success\":\"true\"" >> $EmbedMAS_TMP/json.out
+	echo  "}" >> $EmbedMAS_TMP/json.out
+	# Final de consulta
+
+	echo "Agendando AP WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
+	cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
+	/usr/bin/chonos-taskNew "/usr/bin/chonosWifiConf -f apmode"
+	cat $EmbedMAS_TMP/json.out
+
+	exit 0
+elif [ "$modeOperation" = "default" ]; then
+	$EmbedMAS_HOME/bin/lan/wpa_file_generator.sh
+
+	echo "[chonos-netmng] Agendando Default WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
+	if [ "$driver" = "wext" ]; then
+		/usr/bin/chonos-taskNew "/usr/bin/chonosWifiConf -f default -d wext"
+	else
+		/usr/bin/chonos-taskNew "/usr/bin/chonosWifiConf -f default"
+	fi
+	exit 0
+elif [ "$modeOperation" = "client" ]; then
+	wpa_passphrase $name $key > $EmbedMAS_HOME/conf/WLANs/lan_$name.conf
+
+	echo -n "{" > $EmbedMAS_TMP/json.out
+        echo  " \"message\":\"Client Mode\"," >> $EmbedMAS_TMP/json.out
+		echo  "  \"essid\":\"$name\"," >> $EmbedMAS_TMP/json.out
+		echo  "  \"key\":\"$key\"," >> $EmbedMAS_TMP/json.out
+        echo -n "  \"success\":\"true\"" >> $EmbedMAS_TMP/json.out
+	echo  "}" >> $EmbedMAS_TMP/json.out
+
+	echo "[chonos-netmng] Agendando WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
+	cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
+	
+	if [ "$opt" = "reboot" ]; then
+		/usr/bin/chonos-taskNew "/usr/sbin/reboot"
+	else
+		/usr/bin/chonos-taskNew "/usr/bin/chonosWifiConf -m default"
+	fi
+	cat $EmbedMAS_TMP/json.out
+	exit 0
+fi
+
+######################### WPA Conf ##########################################
+if [ "$confFile" != "" ]; then
+		systemctl stop dnsmasq
+		systemctl stop isc-dhcp-server
+		systemctl stop dhcpcd
+		killall wpa_supplicant 
+		rm /var/run/wpa_supplicant/*
+		#systemctl stop wpa_supplicant
+		systemctl stop networking
+
+	if [ "$confFile" = "default" ]; then
+  		confFile="$EmbedMAS_HOME/conf/WLANs/base.conf $EmbedMAS_HOME/conf/WLANs/lan_*.conf"
+ 		cat $confFile > /etc/wpa_supplicant/wpa_supplicant.conf
+		systemctl start networking
+		#systemctl start wpa_supplicant
+		if [ "$driver" = "wext" ]; then
+			echo "[chonos-netmng] Tentando conectar na rede sem fio, utilizando o driver Wext"
+			/sbin/wpa_supplicant -Dwext -i $wlanInterface -c /etc/wpa_supplicant/wpa_supplicant.conf &
+		else
+			echo "[chonos-netmng] Tentando conectar na rede sem definir o driver"
+			/sbin/wpa_supplicant -i $wlanInterface -c /etc/wpa_supplicant/wpa_supplicant.conf &
+		fi
+		sleep 10
+		systemctl start dhcpcd
+		systemctl start dnsmasq
+		echo 0 > $EmbedMAS_HOME/conf/apMode.conf
+		/usr/bin/chonos-taskNew "/usr/bin/chonosDDNSManager --update"
+  	elif [ "$confFile" = "apmode" ]; then
+		echo 1 > $EmbedMAS_HOME/conf/apMode.conf
+  		confFile="$EmbedMAS_HOME/conf/WLANs/base.conf $EmbedMAS_HOME/conf/WLANs/modeApZeroConf.conf"
+ 		cat $confFile > /etc/wpa_supplicant/wpa_supplicant.conf
+		/sbin/wpa_supplicant -i $wlanInterface -c /etc/wpa_supplicant/wpa_supplicant.conf >> $EmbedMAS_LOGFILE 2>> $EmbedMAS_LOGFILE &
+		sleep 5
+		systemctl start networking
+		#systemctl start wpa_supplicant
+		systemctl start dhcpcd
+		systemctl start isc-dhcp-server
+		systemctl start dnsmasq
+ 	fi
+	
+fi

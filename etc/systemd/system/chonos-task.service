@@ -1,0 +1,12 @@
+[Unit]
+Description=ChonOS Task Manager
+After=network.target
+
+[Service]
+ExecStart=/bin/sh /usr/bin/chonos-nettest --start
+ExecStop=/bin/sh /usr/bin/chonos-nettest --stop
+User=root
+WorkingDirectory=/root
+
+[Install]
+WantedBy=multi-user.target

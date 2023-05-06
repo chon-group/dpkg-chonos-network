@@ -1,0 +1,116 @@
+#! /bin/bash
+EmbedMAS_HOME=/opt/chonos-embMAS
+#EmbedMAS_HOME=/root/chonos-netmng/opt/chonos-embMAS
+EmbedMAS_TMP=/tmp/.embedMAS
+lockfile=/tmp/EmbedMAS-WifiConn.lock
+
+
+while getopts i:-: flag
+do
+    case "${flag}" in
+		i) wlanInterface=${OPTARG};;
+        -) opt=${OPTARG};;
+    esac
+done
+
+if [ "$wlanInterface" = "" ]; then
+	wlanInterface=`cat $EmbedMAS_HOME/conf/wlanInterface.conf | cut -d ";" -f 1`
+fi
+
+if [ "$opt" = "help" ]; then
+	cat $EmbedMAS_HOME/docs/scripts/chonosWifiConn.txt
+elif [ "$opt" = "list" ]; then
+	iwlist ${wlanInterface} scan > $EmbedMAS_TMP/wlans.list
+	qtd=`cat $EmbedMAS_TMP/wlans.list | grep "Cell" | nl | tail -1 | xargs | cut -d " " -f 1`
+	
+	echo -n "[" > $EmbedMAS_TMP/json.out
+		i=2
+		while [ $i -le $((qtd+1)) ]; do
+			essid=`cat $EmbedMAS_TMP/wlans.list | grep "ESSID:" | sed 's,ESSID:",{,g' | sed 's,\",},g' |  sed "s/'/xYZsinglequotexYZ/g" |xargs | cut -d "{" -f $i | cut -d "}" -f 1 | sed "s/xYZsinglequotexYZ/'/g"`
+			key=`cat $EmbedMAS_TMP/wlans.list  | grep "Encryption key:" | sed 's,Encryption key:,{,g' | xargs | cut -d "{" -f $i | xargs`
+			frequency=`cat $EmbedMAS_TMP/wlans.list | grep Frequency: | sed 's,Frequency:,{,g' | cut -d "(" -f 1 | xargs | cut -d "{" -f $i | xargs | cut -d " " -f 1`
+			quality=`cat $EmbedMAS_TMP/wlans.list | grep "Quality=" | sed 's,Quality=,{,g' | sed 's,  Signal,;,g' | cut -d ";" -f 1 | xargs | cut -d "{" -f $i | xargs`
+			channel=`cat $EmbedMAS_TMP/wlans.list | grep "Channel:" | xargs | sed 's,Channel:,{,g' | cut -d "{" -f $i | xargs`
+
+			echo -n "{" >> $EmbedMAS_TMP/json.out
+			echo -n "\"essid\": \"$essid\"," >> $EmbedMAS_TMP/json.out    
+			echo -n "\"encryption\": \"$key\"," >> $EmbedMAS_TMP/json.out
+			echo -n "\"frequency\": \"$frequency\"," >> $EmbedMAS_TMP/json.out
+			echo -n "\"quality\": \"$quality\"," >> $EmbedMAS_TMP/json.out
+			echo -n "\"channel\": \"$channel\"" >> $EmbedMAS_TMP/json.out
+			
+			if [ $i -le $((qtd)) ]; then
+				echo "}," >> $EmbedMAS_TMP/json.out
+			else
+				echo -n "}" >> $EmbedMAS_TMP/json.out
+			fi
+			i=$((i+1))  
+		done
+	echo "]" >> $EmbedMAS_TMP/json.out
+	cat $EmbedMAS_TMP/json.out
+
+elif [ "$opt" = "status" ]; then
+	mkdir -p $EmbedMAS_TMP
+	iwconfig $wlanInterface > $EmbedMAS_TMP/status
+
+	mode=`cat $EmbedMAS_TMP/status | grep Mode | xargs | cut -d ":" -f 2 | cut -d " " -f 1`
+
+	if [ "$mode" = "Master" ]; then
+		# Caso Modo AP
+		essid=`cat /etc/wpa_supplicant/wpa_supplicant.conf | grep "ssid=" | xargs | cut -d "=" -f 2`
+		bitRate="unknown"
+		quality="unknown"
+		number=`cat /etc/wpa_supplicant/wpa_supplicant.conf | grep "frequency" | xargs | cut -d "=" -f 2`
+		fp1=`echo $number | cut -c 1-1`
+		fp2=`echo $number | cut -c 2-4`
+		frequency="$fp1.$fp2"
+		echo "{" > $EmbedMAS_TMP/json.out
+			echo "\"interface\": \"$wlanInterface\"," >> $EmbedMAS_TMP/json.out
+			echo "\"essid\": \"$essid\"," >> $EmbedMAS_TMP/json.out
+			echo "\"mode\": \"$mode\"," >> $EmbedMAS_TMP/json.out
+			echo "\"mbps\": \"$bitRate\"," >> $EmbedMAS_TMP/json.out
+			echo "\"quality\": \"$quality\"," >> $EmbedMAS_TMP/json.out
+			echo "\"frequency\": \"$frequency\"" >> $EmbedMAS_TMP/json.out
+		echo "}" >> $EmbedMAS_TMP/json.out
+		cat $EmbedMAS_TMP/json.out
+	elif [ "$mode" = "Managed" ]; then
+		# Caso Modo Cliente
+		essid=`cat $EmbedMAS_TMP/status | grep "ESSID:" | xargs | cut -d ":" -f 2`
+		bitRate=`cat $EmbedMAS_TMP/status  | grep "Bit Rate" | xargs | cut -d "=" -f 2 | cut -d " " -f 1`
+		quality=`cat $EmbedMAS_TMP/status  | grep "Quality" | xargs | cut -d "=" -f 2 | cut -d " " -f 1`
+		frequency=`cat $EmbedMAS_TMP/status | grep Frequency | xargs | cut -d " " -f 2 | cut -d ":" -f 2`
+		echo "{" > $EmbedMAS_TMP/json.out
+			echo "\"interface\": \"$wlanInterface\"," >> $EmbedMAS_TMP/json.out
+			echo "\"essid\": \"$essid\"," >> $EmbedMAS_TMP/json.out
+			echo "\"mode\": \"$mode\"," >> $EmbedMAS_TMP/json.out
+			echo "\"mbps\": \"$bitRate\"," >> $EmbedMAS_TMP/json.out
+			echo "\"quality\": \"$quality\"," >> $EmbedMAS_TMP/json.out
+			echo "\"frequency\": \"$frequency\"" >> $EmbedMAS_TMP/json.out
+		echo "}" >> $EmbedMAS_TMP/json.out
+		cat $EmbedMAS_TMP/json.out
+	fi
+elif [ "$opt" = "" ]; then
+	touch $lockfile
+	echo $wlanInterface
+
+	while [ -f $lockfile ]
+	do
+		clear
+		echo "Searching Wireless Networks"
+		iwlist $wlanInterface scan | grep ESSID
+		read -r -p "Press [S] to Scan again. Press any key to continue. " choice
+		case $choice in
+			s|S) echo "Searching again ..." ;;
+			*) rm $lockfile ;;
+		esac
+	done
+
+	echo " "
+	read -r -p "Insert the ESSID to conect: " wlanSSID
+	read -s -p "Insert the Password of  $wlanSSID : " wlanPass
+	echo " "
+	
+	wpa_passphrase $wlanSSID $wlanPass > $EmbedMAS_HOME/conf/WLANs/lan_$wlanSSID.conf
+	echo "Agendando WLAN Reconfigure ..."
+	/usr/bin/chonos-taskNew "/usr/bin/chonosWifiConf -m default"
+fi

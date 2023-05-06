@@ -1,0 +1,81 @@
+#! /bin/sh
+EmbedMAS_HOME=/opt/chonos-embMAS
+EmbedMAS_TMP=/dev/shm/.embedMAS/network
+mkdir -p $EmbedMAS_TMP
+
+chonos-log -e "[chonos-nettest] Ativando o teste de Conexão"
+mkdir -p $EmbedMAS_HOME/conf
+echo 0 > $EmbedMAS_HOME/conf/apMode.conf
+
+apMode(){
+	apConf=`cat $EmbedMAS_HOME/conf/apMode.conf`
+	# Verifica configuração modoAP
+	if [ $apConf -eq 1 ]
+	then
+		return 0
+	fi
+	return 1
+}
+
+lanComm(){
+	IP=`hostname -I`
+	BotName=`hostname`
+	chonos-log -e "[chonos-nettest] auto discovery ($BotName - $IP)"
+	/usr/bin/python3 opt/chonos-embMAS/bin/lan/broadcast.py $BotName $IP
+
+	# Testa conexão com o gateway
+	ping -c 5 `ip route list | grep "default" | cut -d " " -f 3` > /dev/null 2> /dev/null
+	[ $? -eq 0 ] && echo "1" > $EmbedMAS_TMP/connected && return 0
+
+	#Verifica se recebeu algum endereço IP
+	if [ "$IP" != "" ]
+	then
+		chonos-log -e "[chonos-nettest] Has IP ($IP) but not connection wifi gateway..."
+		echo "0" > $EmbedMAS_TMP/connected
+		return 0
+	fi
+
+	echo "0" > $EmbedMAS_TMP/connected
+	return 1
+}
+
+commands(){
+	if apMode
+	then
+		#echo -n "AP Mode ON "
+		return 0
+	else
+		if lanComm; then
+			chonos-log -e "[chonos-nettest] LAN Connected!"
+			/usr/bin/chonosDDNSManager --update
+			sleep 120
+			return 0
+		else
+			chonos-log -e "[chonos-nettest] LAN not Connected! - Test 1"
+			/usr/bin/chonosWifiConf -m default
+			sleep 30
+			if lanComm; then
+				/usr/bin/chonosDDNSManager --update
+				return 0
+			else
+				chonos-log -e "[chonos-nettest] LAN not Connected! - Test 2"
+				/usr/bin/chonosWifiConf -f default -d wext
+				sleep 30
+				if lanComm; then
+					/usr/bin/chonosDDNSManager --update
+					return 0
+				else
+					chonos-log -e "[chonos-nettest] LAN não conectada - ativando modo AP"
+					/usr/bin/chonosWifiConf -m ap
+				fi
+			fi
+		fi
+	fi
+}
+
+
+while true
+do
+	sleep 15
+	commands
+done
