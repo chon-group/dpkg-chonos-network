@@ -25,7 +25,7 @@ lanComm(){
 	IP=`hostname -I`
 	BotName=`hostname`
 	chonos-log -e "[chonos-nettest] auto discovery ($BotName - $IP)"
-	/usr/bin/python3 opt/chonos-embMAS/bin/lan/broadcast.py $BotName $IP
+	/usr/bin/python3 /opt/chonos-embMAS/bin/lan/broadcast.py $BotName $IP
 
 	# Testa conexão com o gateway
 	ping -c 5 `ip route list | grep "default" | cut -d " " -f 3` > /dev/null 2> /dev/null
