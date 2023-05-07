@@ -1,5 +1,5 @@
 [Unit]
-Description=ChonOS Task Manager
+Description=ChonOS Network Manager
 After=network.target
 
 [Service]

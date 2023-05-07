@@ -3,9 +3,13 @@ EmbedMAS_HOME=/opt/chonos-embMAS
 EmbedMAS_TMP=/dev/shm/.embedMAS/network
 mkdir -p $EmbedMAS_TMP
 
-chonos-log -e "[chonos-nettest] Ativando o teste de Conexão"
-mkdir -p $EmbedMAS_HOME/conf
-echo 0 > $EmbedMAS_HOME/conf/apMode.conf
+while getopts t:-: flag 
+    do
+    case "${flag}" in
+        t) task=${OPTARG};;  
+        -) opt=${OPTARG};;
+    esac
+done
 
 apMode(){
 	apConf=`cat $EmbedMAS_HOME/conf/apMode.conf`
@@ -74,8 +78,25 @@ commands(){
 }
 
 
-while true
-do
-	sleep 15
-	commands
-done
+if [ "$opt" = "start" ]
+then
+	pid=$$
+	chonos-log -e "[chonos-nettest] Ativando o teste de Conexão"
+	echo 0 > $EmbedMAS_HOME/conf/apMode.conf
+	echo "Processo $pid"
+	echo $pid > $EmbedMAS_TMP/chonos-network.pid
+	while true
+	do
+		sleep 15
+		commands
+	done
+elif [ "$opt" = "stop" ]
+then
+	if [ -f $EmbedMAS_TMP/chonos-network.pid ]
+	then
+		pid=$(cat $EmbedMAS_TMP/chonos-network.pid)
+		rm $EmbedMAS_TMP/chonos-network.pid
+		echo "Parando $pid"
+		kill $pid
+	fi
+fi
