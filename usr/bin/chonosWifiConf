@@ -80,21 +80,16 @@ if [ "$modeOperation" = "ap" ]; then
 	echo 1 > $EmbedMAS_HOME/conf/apMode.conf
 	$EmbedMAS_HOME/bin/lan/wpa_file_generator.sh -c $op1 -e $op2 -k $op3
 
-	echo "Agendando AP WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
-	/usr/bin/chonos-taskNew "/usr/bin/chonosWifiConf -f apmode"
-
-	#Consultando informações
 	echo -n "{" > $EmbedMAS_TMP/json.out
         echo  " \"message\":\"AP Mode ON\"," >> $EmbedMAS_TMP/json.out
 		echo  "  \"essid\":\"$op2\"," >> $EmbedMAS_TMP/json.out
 		echo  "  \"key\":\"$op3\"," >> $EmbedMAS_TMP/json.out
         echo -n "  \"success\":\"true\"" >> $EmbedMAS_TMP/json.out
 	echo  "}" >> $EmbedMAS_TMP/json.out
-	# Final de consulta
 
 	echo "Agendando AP WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
 	cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
-	/usr/bin/chonos-taskNew "/usr/bin/chonosWifiConf -f apmode"
+	/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -f apmode"
 	cat $EmbedMAS_TMP/json.out
 
 	exit 0
@@ -103,9 +98,9 @@ elif [ "$modeOperation" = "default" ]; then
 
 	echo "[chonos-netmng] Agendando Default WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
 	if [ "$driver" = "wext" ]; then
-		/usr/bin/chonos-taskNew "/usr/bin/chonosWifiConf -f default -d wext"
+		/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -f default -d wext"
 	else
-		/usr/bin/chonos-taskNew "/usr/bin/chonosWifiConf -f default"
+		/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -f default"
 	fi
 	exit 0
 elif [ "$modeOperation" = "client" ]; then
@@ -122,9 +117,9 @@ elif [ "$modeOperation" = "client" ]; then
 	cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
 	
 	if [ "$opt" = "reboot" ]; then
-		/usr/bin/chonos-taskNew "/usr/sbin/reboot"
+		/usr/bin/chonos-task -t "/usr/sbin/reboot"
 	else
-		/usr/bin/chonos-taskNew "/usr/bin/chonosWifiConf -m default"
+		/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -m default"
 	fi
 	cat $EmbedMAS_TMP/json.out
 	exit 0
@@ -156,7 +151,7 @@ if [ "$confFile" != "" ]; then
 		systemctl start dhcpcd
 		systemctl start dnsmasq
 		echo 0 > $EmbedMAS_HOME/conf/apMode.conf
-		/usr/bin/chonos-taskNew "/usr/bin/chonosDDNSManager --update"
+		/usr/bin/chonos-task -t "/usr/bin/chonosDDNSManager --update"
   	elif [ "$confFile" = "apmode" ]; then
 		echo 1 > $EmbedMAS_HOME/conf/apMode.conf
   		confFile="$EmbedMAS_HOME/conf/WLANs/base.conf $EmbedMAS_HOME/conf/WLANs/modeApZeroConf.conf"

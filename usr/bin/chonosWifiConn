@@ -112,5 +112,5 @@ elif [ "$opt" = "" ]; then
 	
 	wpa_passphrase $wlanSSID $wlanPass > $EmbedMAS_HOME/conf/WLANs/lan_$wlanSSID.conf
 	echo "Agendando WLAN Reconfigure ..."
-	/usr/bin/chonos-taskNew "/usr/bin/chonosWifiConf -m default"
+	/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -m default"
 fi
