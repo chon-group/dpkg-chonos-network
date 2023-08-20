@@ -24,7 +24,7 @@ apMode(){
 lanComm(){
 	IP=`hostname -I`
 	BotName=`hostname`
-	chonos-log -e "[chonos-nettest] auto discovery ($BotName - $IP)"
+	chonos-log -e "[chonos-nettest] Auto discovery ($BotName - $IP)"
 	/usr/bin/python3 /opt/chonos-embMAS/bin/lan/broadcast.py $BotName $IP
 
 	# Testa conexão com o gateway
@@ -56,6 +56,7 @@ commands(){
 			return 0
 		else
 			chonos-log -e "[chonos-nettest] LAN not Connected! - Test 1"
+			pkill chonosWifiConf
 			/usr/bin/chonosWifiConf -m default
 			sleep 30
 			if lanComm; then
@@ -63,13 +64,15 @@ commands(){
 				return 0
 			else
 				chonos-log -e "[chonos-nettest] LAN not Connected! - Test 2"
+				pkill chonosWifiConf
 				/usr/bin/chonosWifiConf -f default -d wext
 				sleep 30
 				if lanComm; then
 					/usr/bin/chonosDDNSManager --update
 					return 0
 				else
-					chonos-log -e "[chonos-nettest] LAN não conectada - ativando modo AP"
+					chonos-log -e "[chonos-nettest] LAN not Connected! - Starting AP Mode"
+					pkill chonosWifiConf
 					/usr/bin/chonosWifiConf -m ap
 				fi
 			fi
@@ -81,7 +84,7 @@ commands(){
 if [ "$opt" = "start" ]
 then
 	pid=$$
-	chonos-log -e "[chonos-nettest] Ativando o teste de Conexão"
+	chonos-log -e "[chonos-nettest] Starting Connection Tester"
 	echo 0 > $EmbedMAS_HOME/conf/apMode.conf
 	echo "Processo $pid"
 	echo $pid > $EmbedMAS_TMP/chonos-network.pid
