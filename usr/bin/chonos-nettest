@@ -57,7 +57,7 @@ commands(){
 		else
 			chonos-log -e "[chonos-nettest] LAN not Connected! - Test 1"
 			pkill chonosWifiConf
-			/usr/bin/chonosWifiConf -m default
+			/usr/bin/chonosWifiConf -f default
 			sleep 30
 			if lanComm; then
 				/usr/bin/chonosDDNSManager --update

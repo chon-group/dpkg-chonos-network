@@ -119,7 +119,8 @@ elif [ "$modeOperation" = "client" ]; then
 	if [ "$opt" = "reboot" ]; then
 		/usr/bin/chonos-task -t "/usr/sbin/reboot"
 	else
-		/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -m default"
+			killall wpa_supplicant
+	systemctl restart chonos-network &
 	fi
 	cat $EmbedMAS_TMP/json.out
 	exit 0
