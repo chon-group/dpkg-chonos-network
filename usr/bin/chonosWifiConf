@@ -116,13 +116,12 @@ elif [ "$modeOperation" = "client" ]; then
 	echo "[chonos-netmng] Agendando WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
 	cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
 	
-	#Desabled until chonIDE there is no a explicit option to reboot
-	#if [ "$opt" = "reboot" ]; then
-		#/usr/bin/chonos-task -t "/usr/sbin/reboot"
-	#else
+	if [ "$opt" = "reboot" ]; then
+		/usr/bin/chonos-task -t "/usr/sbin/reboot"
+	else
 		killall wpa_supplicant
 		systemctl restart chonos-network &
-	#fi
+	fi
 	cat $EmbedMAS_TMP/json.out
 	exit 0
 fi
