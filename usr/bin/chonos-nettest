@@ -24,49 +24,48 @@ apMode(){
 lanComm(){
 	IP=`hostname -I`
 	BotName=`hostname`
-	chonos-log -e "[chonos-nettest] Auto discovery ($BotName - $IP)"
-	/usr/bin/python3 /opt/chonos-embMAS/bin/lan/broadcast.py $BotName $IP
-
 	# Testa conexão com o gateway
 	ping -c 5 `ip route list | grep "default" | cut -d " " -f 3` > /dev/null 2> /dev/null
-	[ $? -eq 0 ] && echo "1" > $EmbedMAS_TMP/connected && return 0
-
-	#Verifica se recebeu algum endereço IP
-	if [ "$IP" != "" ]
+	if [ $? -eq 0 ]
 	then
+		#chonos-log -e "[chonos-nettest] Auto discovery ($BotName - $IP)"
+		/usr/bin/python3 /opt/chonos-embMAS/bin/lan/broadcast.py $BotName $IP
+		echo "1" > $EmbedMAS_TMP/connected
+		return 0
+	elif [[ "$IP" != "" ]  &&  [ "$IP" != "192.168.168.1"]]
+	then
+		#chonos-log -e "[chonos-nettest] Auto discovery ($BotName - $IP)"
+		/usr/bin/python3 /opt/chonos-embMAS/bin/lan/broadcast.py $BotName $IP
 		chonos-log -e "[chonos-nettest] Has IP ($IP) but not connection wifi gateway..."
 		echo "0" > $EmbedMAS_TMP/connected
 		return 0
 	fi
-
 	echo "0" > $EmbedMAS_TMP/connected
 	return 1
 }
 
 commands(){
-	if apMode
-	then
-		#echo -n "AP Mode ON "
+	if apMode; then
 		return 0
 	else
 		if lanComm; then
-			chonos-log -e "[chonos-nettest] LAN Connected!"
+			#chonos-log -e "[chonos-nettest] LAN Connected!"
 			/usr/bin/chonosDDNSManager --update
-			sleep 120
+			sleep 30
 			return 0
 		else
-			chonos-log -e "[chonos-nettest] LAN not Connected! - Test 1"
+			chonos-log -e "[chonos-nettest] LAN not Connected! - Trying reconnect (1)"
 			pkill chonosWifiConf
 			/usr/bin/chonosWifiConf -f default
-			sleep 30
+			sleep 15
 			if lanComm; then
 				/usr/bin/chonosDDNSManager --update
 				return 0
 			else
-				chonos-log -e "[chonos-nettest] LAN not Connected! - Test 2"
+				chonos-log -e "[chonos-nettest] LAN not Connected! - Trying reconnect (2)"
 				pkill chonosWifiConf
 				/usr/bin/chonosWifiConf -f default -d wext
-				sleep 30
+				sleep 15
 				if lanComm; then
 					/usr/bin/chonosDDNSManager --update
 					return 0
@@ -90,7 +89,7 @@ then
 	echo $pid > $EmbedMAS_TMP/chonos-network.pid
 	while true
 	do
-		sleep 15
+		sleep 30
 		commands
 	done
 elif [ "$opt" = "stop" ]

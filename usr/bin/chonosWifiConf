@@ -116,18 +116,20 @@ elif [ "$modeOperation" = "client" ]; then
 	echo "[chonos-netmng] Agendando WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
 	cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
 	
-	if [ "$opt" = "reboot" ]; then
-		/usr/bin/chonos-task -t "/usr/sbin/reboot"
-	else
-			killall wpa_supplicant
-	systemctl restart chonos-network &
-	fi
+	#Desabled until chonIDE there is no a explicit option to reboot
+	#if [ "$opt" = "reboot" ]; then
+		#/usr/bin/chonos-task -t "/usr/sbin/reboot"
+	#else
+		killall wpa_supplicant
+		systemctl restart chonos-network &
+	#fi
 	cat $EmbedMAS_TMP/json.out
 	exit 0
 fi
 
 ######################### WPA Conf ##########################################
 if [ "$confFile" != "" ]; then
+		ip addr del 192.168.168.1/28 dev $wlanInterface >> /dev/null 2>> /dev/null
 		systemctl stop dnsmasq
 		systemctl stop isc-dhcp-server
 		systemctl stop dhcpcd
@@ -164,6 +166,7 @@ if [ "$confFile" != "" ]; then
 		systemctl start dhcpcd
 		systemctl start isc-dhcp-server
 		systemctl start dnsmasq
+		chonos-log -e "[chonos-nettest] AP Mode Configured!"
  	fi
 	
 fi
