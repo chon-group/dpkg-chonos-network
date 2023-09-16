@@ -3,7 +3,7 @@ Version: 1.1.5
 Priority:
 Architecture: all
 Essential:
-Depends: chonos-task (>= 1.1.0), chonos-ddnsmng (>= 1.0.0), chonos-log (>= 1.2.5)
+Depends: chonos-task (>= 1.1.0), chonos-ddnsmng (>= 1.0.0), chonos-log (>= 1.3)
 Pre-depends: dhcpcd5, wpasupplicant, isc-dhcp-server, dnsutils, dnsmasq
 Suggests:
 Installed-Size:
