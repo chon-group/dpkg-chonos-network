@@ -1,7 +1,6 @@
 #! /bin/sh
 # WPA Supplicant ModeAP Gerenerator
-EmbedMAS_HOME=/opt/chonos-embMAS
-#EmbedMAS_HOME=/root/chonos-netmng/opt/chonos-embMAS
+EmbedMAS_HOME=/opt/group.chon
 tmpFile=/tmp/wpa-conf-random-freq.conf
 
 while getopts c:e:k: flag

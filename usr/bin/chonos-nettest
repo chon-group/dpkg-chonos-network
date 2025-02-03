@@ -1,5 +1,5 @@
 #! /bin/sh
-EmbedMAS_HOME=/opt/chonos-embMAS
+EmbedMAS_HOME=/opt/group.chon
 EmbedMAS_TMP=/dev/shm/.embedMAS/network
 mkdir -p $EmbedMAS_TMP
 
@@ -28,20 +28,21 @@ lanComm(){
 	ping -c 5 `ip route list | grep "default" | cut -d " " -f 3` > /dev/null 2> /dev/null
 	if [ $? -eq 0 ]
 	then
-		#chonos-log -e "[chonos-nettest] Auto discovery ($BotName - $IP)"
-		/usr/bin/python3 /opt/chonos-embMAS/bin/lan/broadcast.py $BotName $IP
 		echo "1" > $EmbedMAS_TMP/connected
+		/usr/bin/chonosDDNSManager --update
 		return 0
 	elif [[ "$IP" != "" ]  &&  [ "$IP" != "192.168.168.1"]]
 	then
-		#chonos-log -e "[chonos-nettest] Auto discovery ($BotName - $IP)"
-		/usr/bin/python3 /opt/chonos-embMAS/bin/lan/broadcast.py $BotName $IP
 		chonos-log -e "[chonos-nettest] Has IP ($IP) but not connection wifi gateway..."
 		echo "0" > $EmbedMAS_TMP/connected
+		/usr/bin/chonosDDNSManager --update
 		return 0
+	else
+		# revisar a necessidade...
+		echo "0" > $EmbedMAS_TMP/connected
+		# retorna erro...
+		return 1
 	fi
-	echo "0" > $EmbedMAS_TMP/connected
-	return 1
 }
 
 commands(){
@@ -49,9 +50,7 @@ commands(){
 		return 0
 	else
 		if lanComm; then
-			#chonos-log -e "[chonos-nettest] LAN Connected!"
-			/usr/bin/chonosDDNSManager --update
-			sleep 30
+			sleep 30 
 			return 0
 		else
 			chonos-log -e "[chonos-nettest] LAN not Connected! - Trying reconnect (1)"
@@ -59,7 +58,6 @@ commands(){
 			/usr/bin/chonosWifiConf -f default
 			sleep 15
 			if lanComm; then
-				/usr/bin/chonosDDNSManager --update
 				return 0
 			else
 				chonos-log -e "[chonos-nettest] LAN not Connected! - Trying reconnect (2)"
@@ -67,7 +65,6 @@ commands(){
 				/usr/bin/chonosWifiConf -f default -d wext
 				sleep 15
 				if lanComm; then
-					/usr/bin/chonosDDNSManager --update
 					return 0
 				else
 					chonos-log -e "[chonos-nettest] LAN not Connected! - Starting AP Mode"
@@ -89,7 +86,7 @@ then
 	echo $pid > $EmbedMAS_TMP/chonos-network.pid
 	while true
 	do
-		sleep 30
+		sleep 15
 		commands
 	done
 elif [ "$opt" = "stop" ]

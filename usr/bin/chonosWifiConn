@@ -1,6 +1,5 @@
 #! /bin/bash
-EmbedMAS_HOME=/opt/chonos-embMAS
-#EmbedMAS_HOME=/root/chonos-netmng/opt/chonos-embMAS
+EmbedMAS_HOME=/opt/group.chon
 EmbedMAS_TMP=/tmp/.embedMAS
 lockfile=/tmp/EmbedMAS-WifiConn.lock
 
