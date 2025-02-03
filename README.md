@@ -1,6 +1,6 @@
 # ChonOS Network Manager
 
-|![chonos-firmware](https://github.com/chon-group/dpkg-chonos-firmwaremng/assets/32855001/f4f43941-6fdb-4b58-9791-66f480c0d449)|
+|![chonos-network-cover](https://github.com/user-attachments/assets/18c60cc7-949e-4158-bc11-0029d23b38ce)|
 |:--:|
 |ChonOS Network Manager implements auto management for IEEE 802.3 and IEEE 802.11 network interfaces. So, the designer can easily access the management layer by connecting a network cable from the device directly to a computer or any port in the local area network without worrying about the local Dynamic Host Configuration Protocol server or static IP address. Also, it implements Wi-Fi Direct; thus, the designer can manage it even using a smartphone. Finally, it implements link monitoring and auto-reconnection using Internet Control Message Protocol, which is useful for mobile robots that may eventually leave the range of the wireless network.|
 
