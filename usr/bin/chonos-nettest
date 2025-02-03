@@ -79,11 +79,28 @@ commands(){
 
 if [ "$opt" = "start" ]
 then
+	#Armazenando o nr do processo
 	pid=$$
-	chonos-log -e "[chonos-nettest] Starting the Networking Manager"
-	echo 0 > $EmbedMAS_HOME/conf/apMode.conf
-	echo "Processo $pid"
+	chonos-log -e "[chonos-nettest] Starting the Networking Manager ($pid)"
 	echo $pid > $EmbedMAS_TMP/chonos-network.pid
+	
+	#Desativando o Modo Avião
+	rfkill unblock all
+
+	#Identificando Placa de Rede Sem Fio e o MAC
+	wlanInterface=`iwconfig 2> /dev/null | xargs | cut -d " " -f 1`
+	if [[ "$wlanInterface" != "" ]]
+	then
+		macInterface=`ifconfig $wlanInterface | grep ether | xargs | cut -d " " -f 2`
+		echo "$wlanInterface;$macInterface" > $EmbedMAS_HOME/conf/wlanInterface.conf
+	else
+		echo "null;00:00:00:00:00:00" > $EmbedMAS_HOME/conf/wlanInterface.conf
+	fi
+	
+	# forçando tentativa de conexão em rede local
+	echo 0 > $EmbedMAS_HOME/conf/apMode.conf
+
+	# executando a verificação continuamente
 	while true
 	do
 		sleep 15
@@ -93,10 +110,9 @@ elif [ "$opt" = "stop" ]
 then
 	if [ -f $EmbedMAS_TMP/chonos-network.pid ]
 	then
-		chonos-log -e "[chonos-nettest] Stopping the Networking Manager"
 		pid=$(cat $EmbedMAS_TMP/chonos-network.pid)
-		rm $EmbedMAS_TMP/chonos-network.pid
-		echo "Parando $pid"
 		kill $pid
+		chonos-log -e "[chonos-nettest] Stopping the Networking Manager ($pid)"
+		rm $EmbedMAS_TMP/chonos-network.pid
 	fi
 fi

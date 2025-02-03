@@ -4,13 +4,6 @@ EmbedMAS_TMP=/tmp/.embedMAS
 EmbedMAS_LOGFILE=$EmbedMAS_TMP/embeddedMAS.log
 mkdir -p $EmbedMAS_TMP
 
-#Desativando o Modo Avião
-rfkill unblock all
-
-#Identificando o MAC
-wlanInterface=`iwconfig 2> /dev/null | xargs | cut -d " " -f 1`
-macInterface=`ifconfig $wlanInterface | grep ether | xargs | cut -d " " -f 2`
-echo "$wlanInterface;$macInterface" > $EmbedMAS_HOME/conf/wlanInterface.conf
 
 while getopts h:f:m:c:e:k:d:-: flag
 do
@@ -62,38 +55,44 @@ fi
 ######################## Mode Operation #####################################
 if [ "$modeOperation" = "ap" ]; then
 	macInterface=`cat $EmbedMAS_HOME/conf/wlanInterface.conf | cut -d ";" -f 2 | sed 's,:,-,g'`
-	op1='random'
-	op2="EmbeddedMAS($macInterface)"
-	op3='NONE'
+	if [[ "$macInterface" == "00:00:00:00:00:00" ]]
+	then
+		chonos-log -e "[chonos-network] Non existis a Wireless Interface to turn on the AP Mode!"
+		exit 1
+	else
+		op1='random'
+		op2="EmbeddedMAS($macInterface)"
+		op3='NONE'
 
-	if [ "$ch" != "" ]; then
-		op1=$ch
+		if [ "$ch" != "" ]; then
+			op1=$ch
+		fi
+
+		if [ "$name" != "" ]; then
+			op2=$name
+		fi
+
+		if [ "$key" != "" ]; then
+			op3=$key
+		fi
+
+		echo 1 > $EmbedMAS_HOME/conf/apMode.conf
+		$EmbedMAS_HOME/bin/lan/wpa_file_generator.sh -c $op1 -e $op2 -k $op3
+
+		echo -n "{" > $EmbedMAS_TMP/json.out
+			echo  " \"message\":\"AP Mode ON\"," >> $EmbedMAS_TMP/json.out
+			echo  "  \"essid\":\"$op2\"," >> $EmbedMAS_TMP/json.out
+			echo  "  \"key\":\"$op3\"," >> $EmbedMAS_TMP/json.out
+			echo -n "  \"success\":\"true\"" >> $EmbedMAS_TMP/json.out
+		echo  "}" >> $EmbedMAS_TMP/json.out
+
+		echo "Agendando AP WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
+		cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
+		/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -f apmode"
+		cat $EmbedMAS_TMP/json.out
+
+		exit 0
 	fi
-
-	if [ "$name" != "" ]; then
-		op2=$name
-	fi
-
-	if [ "$key" != "" ]; then
-		op3=$key
-	fi
-
-	echo 1 > $EmbedMAS_HOME/conf/apMode.conf
-	$EmbedMAS_HOME/bin/lan/wpa_file_generator.sh -c $op1 -e $op2 -k $op3
-
-	echo -n "{" > $EmbedMAS_TMP/json.out
-        echo  " \"message\":\"AP Mode ON\"," >> $EmbedMAS_TMP/json.out
-		echo  "  \"essid\":\"$op2\"," >> $EmbedMAS_TMP/json.out
-		echo  "  \"key\":\"$op3\"," >> $EmbedMAS_TMP/json.out
-        echo -n "  \"success\":\"true\"" >> $EmbedMAS_TMP/json.out
-	echo  "}" >> $EmbedMAS_TMP/json.out
-
-	echo "Agendando AP WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
-	cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
-	/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -f apmode"
-	cat $EmbedMAS_TMP/json.out
-
-	exit 0
 elif [ "$modeOperation" = "default" ]; then
 	$EmbedMAS_HOME/bin/lan/wpa_file_generator.sh
 
