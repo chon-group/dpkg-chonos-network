@@ -33,7 +33,7 @@ lanComm(){
 		return 0
 	elif [[ "$IP" != "" ]  &&  [ "$IP" != "192.168.168.1"]]
 	then
-		chonos-log -e "[chonos-nettest] Has IP ($IP) but not connection wifi gateway..."
+		chonos-log -e "[chonos-nettest] Has IP ($IP) but not connection with the gateway..."
 		echo "0" > $EmbedMAS_TMP/connected
 		/usr/bin/chonosDDNSManager --update
 		return 0
@@ -53,7 +53,7 @@ commands(){
 			sleep 30 
 			return 0
 		else
-			chonos-log -e "[chonos-nettest] LAN not Connected! - Trying reconnect (1)"
+			chonos-log -e "[chonos-nettest] LAN not Connected! - Trying connect (1)"
 			pkill chonosWifiConf
 			/usr/bin/chonosWifiConf -f default
 			sleep 15
@@ -80,7 +80,7 @@ commands(){
 if [ "$opt" = "start" ]
 then
 	pid=$$
-	chonos-log -e "[chonos-nettest] Starting Connection Tester"
+	chonos-log -e "[chonos-nettest] Starting the Networking Manager"
 	echo 0 > $EmbedMAS_HOME/conf/apMode.conf
 	echo "Processo $pid"
 	echo $pid > $EmbedMAS_TMP/chonos-network.pid
@@ -93,6 +93,7 @@ elif [ "$opt" = "stop" ]
 then
 	if [ -f $EmbedMAS_TMP/chonos-network.pid ]
 	then
+		chonos-log -e "[chonos-nettest] Stopping the Networking Manager"
 		pid=$(cat $EmbedMAS_TMP/chonos-network.pid)
 		rm $EmbedMAS_TMP/chonos-network.pid
 		echo "Parando $pid"

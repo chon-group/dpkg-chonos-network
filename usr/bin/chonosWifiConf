@@ -29,7 +29,9 @@ done
 if [ "$opt" = "help" ]; then
 	cat $EmbedMAS_HOME/docs/scripts/chonosWifiConf.txt
 elif [ "$opt" = "forget" ]; then
+	chonos-log -e "[chonos-nettest] Forgetting WLANs..."
 	rm $EmbedMAS_HOME/conf/WLANs/lan_*.conf 2>/dev/null
+	cp $EmbedMAS_HOME/conf/WLANs/base.conf /etc/wpa_supplicant/wpa_supplicant.conf
 	 echo -n "{"
         echo -n " \"message\":\"Esquecer Redes\","
         echo -n "  \"success\":\"true\""
