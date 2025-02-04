@@ -52,51 +52,53 @@ elif [ "$opt" = "list" ]; then
 	cat $EmbedMAS_TMP/json.out
 fi
 
+
+
+macInterface=`cat $EmbedMAS_HOME/conf/wlanInterface.conf | cut -d ";" -f 2 | sed 's,:,-,g'`
+if [ "$macInterface" = "00-00-00-00-00-00" ]
+then
+	chonos-log -e "[chonosWifiConf] Non existis a Wireless Interface!"
+	exit 1
+fi
+
 ######################## Mode Operation #####################################
 if [ "$modeOperation" = "ap" ]; then
-	macInterface=`cat $EmbedMAS_HOME/conf/wlanInterface.conf | cut -d ";" -f 2 | sed 's,:,-,g'`
-	if [[ "$macInterface" == "00:00:00:00:00:00" ]]
-	then
-		chonos-log -e "[chonos-network] Non existis a Wireless Interface to turn on the AP Mode!"
-		exit 1
-	else
-		op1='random'
-		op2="EmbeddedMAS($macInterface)"
-		op3='NONE'
+	op1='random'
+	op2="EmbeddedMAS($macInterface)"
+	op3='NONE'
 
-		if [ "$ch" != "" ]; then
-			op1=$ch
-		fi
-
-		if [ "$name" != "" ]; then
-			op2=$name
-		fi
-
-		if [ "$key" != "" ]; then
-			op3=$key
-		fi
-
-		echo 1 > $EmbedMAS_HOME/conf/apMode.conf
-		$EmbedMAS_HOME/bin/lan/wpa_file_generator.sh -c $op1 -e $op2 -k $op3
-
-		echo -n "{" > $EmbedMAS_TMP/json.out
-			echo  " \"message\":\"AP Mode ON\"," >> $EmbedMAS_TMP/json.out
-			echo  "  \"essid\":\"$op2\"," >> $EmbedMAS_TMP/json.out
-			echo  "  \"key\":\"$op3\"," >> $EmbedMAS_TMP/json.out
-			echo -n "  \"success\":\"true\"" >> $EmbedMAS_TMP/json.out
-		echo  "}" >> $EmbedMAS_TMP/json.out
-
-		echo "Agendando AP WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
-		cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
-		/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -f apmode"
-		cat $EmbedMAS_TMP/json.out
-
-		exit 0
+	if [ "$ch" != "" ]; then
+		op1=$ch
 	fi
+
+	if [ "$name" != "" ]; then
+		op2=$name
+	fi
+
+	if [ "$key" != "" ]; then
+		op3=$key
+	fi
+
+	echo 1 > $EmbedMAS_HOME/conf/apMode.conf
+	$EmbedMAS_HOME/bin/lan/wpa_file_generator.sh -c $op1 -e $op2 -k $op3
+
+	echo -n "{" > $EmbedMAS_TMP/json.out
+		echo  " \"message\":\"AP Mode ON\"," >> $EmbedMAS_TMP/json.out
+		echo  "  \"essid\":\"$op2\"," >> $EmbedMAS_TMP/json.out
+		echo  "  \"key\":\"$op3\"," >> $EmbedMAS_TMP/json.out
+		echo -n "  \"success\":\"true\"" >> $EmbedMAS_TMP/json.out
+	echo  "}" >> $EmbedMAS_TMP/json.out
+
+	chonos-log -e "Agendando AP WLAN Reconfigure ..."
+	cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
+	/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -f apmode"
+	cat $EmbedMAS_TMP/json.out
+
+	exit 0
 elif [ "$modeOperation" = "default" ]; then
 	$EmbedMAS_HOME/bin/lan/wpa_file_generator.sh
 
-	echo "[chonos-netmng] Agendando Default WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
+	chonos-log -e "[chonos-netmng] Agendando Default WLAN Reconfigure ..."
 	if [ "$driver" = "wext" ]; then
 		/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -f default -d wext"
 	else
@@ -113,7 +115,7 @@ elif [ "$modeOperation" = "client" ]; then
         echo -n "  \"success\":\"true\"" >> $EmbedMAS_TMP/json.out
 	echo  "}" >> $EmbedMAS_TMP/json.out
 
-	echo "[chonos-netmng] Agendando WLAN Reconfigure ..." >> $EmbedMAS_LOGFILE
+	chonos-log -e "[chonos-netmng] Agendando WLAN Reconfigure ..."
 	cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
 	
 	if [ "$opt" = "reboot" ]; then
@@ -143,10 +145,10 @@ if [ "$confFile" != "" ]; then
 		systemctl start networking
 		#systemctl start wpa_supplicant
 		if [ "$driver" = "wext" ]; then
-			echo "[chonos-netmng] Tentando conectar na rede sem fio, utilizando o driver Wext"
+			chonos-log -e "[chonos-netmng] Tentando conectar na rede sem fio, utilizando o driver Wext"
 			/sbin/wpa_supplicant -Dwext -i $wlanInterface -c /etc/wpa_supplicant/wpa_supplicant.conf &
 		else
-			echo "[chonos-netmng] Tentando conectar na rede sem definir o driver"
+			chonos-log -e "[chonos-netmng] Tentando conectar na rede sem definir o driver"
 			/sbin/wpa_supplicant -i $wlanInterface -c /etc/wpa_supplicant/wpa_supplicant.conf &
 		fi
 		sleep 10

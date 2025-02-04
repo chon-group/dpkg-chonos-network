@@ -21,6 +21,16 @@ apMode(){
 	return 1
 }
 
+wlanExistis(){
+	macInterface=`cat $EmbedMAS_HOME/conf/wlanInterface.conf | cut -d ";" -f 2 | sed 's,:,-,g'`
+	if [ "$macInterface" = "00-00-00-00-00-00" ]
+	then
+		return 1
+	else	
+		return 0
+	fi
+}
+
 lanComm(){
 	IP=`hostname -I`
 	BotName=`hostname`
@@ -39,6 +49,7 @@ lanComm(){
 		return 0
 	else
 		# revisar a necessidade...
+		chonos-log -e "[chonos-nettest] Without connection..."
 		echo "0" > $EmbedMAS_TMP/connected
 		# retorna erro...
 		return 1
@@ -52,24 +63,25 @@ commands(){
 		if lanComm; then
 			sleep 30 
 			return 0
-		else
-			chonos-log -e "[chonos-nettest] LAN not Connected! - Trying connect (1)"
+		elif wlanExistis; then
+			#chonos-log -e "[chonos-nettest] LAN not Connected! - Trying connect (1)"
 			pkill chonosWifiConf
 			/usr/bin/chonosWifiConf -f default
 			sleep 15
 			if lanComm; then
 				return 0
 			else
-				chonos-log -e "[chonos-nettest] LAN not Connected! - Trying reconnect (2)"
+				#chonos-log -e "[chonos-nettest] LAN not Connected! - Trying reconnect (2)"
 				pkill chonosWifiConf
 				/usr/bin/chonosWifiConf -f default -d wext
 				sleep 15
 				if lanComm; then
 					return 0
 				else
-					chonos-log -e "[chonos-nettest] LAN not Connected! - Starting AP Mode"
+					#chonos-log -e "[chonos-nettest] LAN not Connected! - Starting AP Mode"
 					pkill chonosWifiConf
 					/usr/bin/chonosWifiConf -m ap
+					sleep 15
 				fi
 			fi
 		fi
