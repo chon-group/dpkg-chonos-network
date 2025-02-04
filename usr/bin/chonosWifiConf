@@ -60,6 +60,7 @@ then
 	chonos-log -e "[chonosWifiConf] Non existis a Wireless Interface!"
 	exit 1
 fi
+wlanInterface=`cat $EmbedMAS_HOME/conf/wlanInterface.conf | cut -d ";" -f 1`
 
 ######################## Mode Operation #####################################
 if [ "$modeOperation" = "ap" ]; then
