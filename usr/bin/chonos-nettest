@@ -101,7 +101,7 @@ then
 
 	#Identificando Placa de Rede Sem Fio e o MAC
 	wlanInterface=`iwconfig 2> /dev/null | xargs | cut -d " " -f 1`
-	if [[ "$wlanInterface" != "" ]]
+	if [ "$wlanInterface" != "" ]
 	then
 		macInterface=`ifconfig $wlanInterface | grep ether | xargs | cut -d " " -f 2`
 		echo "$wlanInterface;$macInterface" > $EmbedMAS_HOME/conf/wlanInterface.conf
