@@ -36,13 +36,12 @@ lanComm(){
 	BotName=`hostname`
 	# Testa conexão com o gateway
 	ping -c 5 `ip route list | grep "default" | cut -d " " -f 3` > /dev/null 2> /dev/null
-	if [ $? -eq 0 ]
-	then
+	if [ $? -eq 0 ]; then
 		echo "1" > $EmbedMAS_TMP/connected
 		/usr/bin/chonosDDNSManager --update
 		return 0
-	elif [[ "$IP" != "" ]  &&  [ "$IP" != "192.168.168.1"]]
-	then
+#	elif [[ -n "$IP" ]] && [[ "$IP" != "192.168.168.1" ]]; then
+	elif [ -n "$IP" ] && [ "$IP" != "192.168.168.1" ]; then
 		chonos-log -e "[chonos-nettest] Has IP ($IP) but not connection with the gateway..."
 		echo "0" > $EmbedMAS_TMP/connected
 		/usr/bin/chonosDDNSManager --update
@@ -52,6 +51,7 @@ lanComm(){
 		chonos-log -e "[chonos-nettest] Without connection..."
 		echo "0" > $EmbedMAS_TMP/connected
 		# retorna erro...
+		searchingWNIC
 		return 1
 	fi
 }
@@ -64,17 +64,22 @@ commands(){
 			sleep 30 
 			return 0
 		elif wlanExistis; then
+			WLANS=$(chonosWifiConf --list | jq '. | length')
 			#chonos-log -e "[chonos-nettest] LAN not Connected! - Trying connect (1)"
-			pkill chonosWifiConf
-			/usr/bin/chonosWifiConf -f default
-			sleep 15
+			if [ "$WLANS" -gt 0 ]; then
+				pkill chonosWifiConf
+				/usr/bin/chonosWifiConf -f default
+				sleep 15
+			fi
 			if lanComm; then
 				return 0
 			else
 				#chonos-log -e "[chonos-nettest] LAN not Connected! - Trying reconnect (2)"
-				pkill chonosWifiConf
-				/usr/bin/chonosWifiConf -f default -d wext
-				sleep 15
+				if [ "$WLANS" -gt 0 ]; then
+					pkill chonosWifiConf
+					/usr/bin/chonosWifiConf -f default -d wext
+					sleep 15
+				fi
 				if lanComm; then
 					return 0
 				else
@@ -85,6 +90,18 @@ commands(){
 				fi
 			fi
 		fi
+	fi
+}
+
+searchingWNIC(){
+	#Identificando Placa de Rede Sem Fio e o MAC
+	wlanInterface=`iwconfig 2> /dev/null | xargs | cut -d " " -f 1`
+	if [ "$wlanInterface" != "" ]
+	then
+		macInterface=`ifconfig $wlanInterface | grep ether | xargs | cut -d " " -f 2`
+		echo "$wlanInterface;$macInterface" > $EmbedMAS_HOME/conf/wlanInterface.conf
+	else
+		echo "null;00:00:00:00:00:00" > $EmbedMAS_HOME/conf/wlanInterface.conf
 	fi
 }
 
@@ -99,18 +116,11 @@ then
 	#Desativando o Modo Avião
 	rfkill unblock all
 
-	#Identificando Placa de Rede Sem Fio e o MAC
-	wlanInterface=`iwconfig 2> /dev/null | xargs | cut -d " " -f 1`
-	if [ "$wlanInterface" != "" ]
-	then
-		macInterface=`ifconfig $wlanInterface | grep ether | xargs | cut -d " " -f 2`
-		echo "$wlanInterface;$macInterface" > $EmbedMAS_HOME/conf/wlanInterface.conf
-	else
-		echo "null;00:00:00:00:00:00" > $EmbedMAS_HOME/conf/wlanInterface.conf
-	fi
-	
 	# forçando tentativa de conexão em rede local
 	echo 0 > $EmbedMAS_HOME/conf/apMode.conf
+
+	# procura interface de rede semfio
+	searchingWNIC
 
 	# executando a verificação continuamente
 	while true
