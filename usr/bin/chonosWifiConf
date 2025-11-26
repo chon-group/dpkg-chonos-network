@@ -132,18 +132,18 @@ fi
 ######################### WPA Conf ##########################################
 if [ "$confFile" != "" ]; then
 		ip addr del 192.168.168.1/28 dev $wlanInterface >> /dev/null 2>> /dev/null
-		systemctl stop dnsmasq
-		systemctl stop isc-dhcp-server
-		systemctl stop dhcpcd
+		chonos-service -s dnsmasq --stop
+		chonos-service -s isc-dhcp-server --stop
+		chonos-service -s dhcpcd --stop
 		killall wpa_supplicant 
 		rm /var/run/wpa_supplicant/*
 		#systemctl stop wpa_supplicant
-		systemctl stop networking
+		chonos-service -s networking --stop
 
 	if [ "$confFile" = "default" ]; then
   		confFile="$EmbedMAS_HOME/conf/WLANs/base.conf $EmbedMAS_HOME/conf/WLANs/lan_*.conf"
  		cat $confFile > /etc/wpa_supplicant/wpa_supplicant.conf
-		systemctl start networking
+		chonos-service -s networking -w 3 -t 3 --start
 		#systemctl start wpa_supplicant
 		if [ "$driver" = "wext" ]; then
 			chonos-log -e "[chonos-netmng] Tentando conectar na rede sem fio, utilizando o driver Wext"
@@ -153,8 +153,8 @@ if [ "$confFile" != "" ]; then
 			/sbin/wpa_supplicant -i $wlanInterface -c /etc/wpa_supplicant/wpa_supplicant.conf &
 		fi
 		sleep 10
-		systemctl start dhcpcd
-		systemctl start dnsmasq
+		chonos-service -s dhcpcd -w 3 -t 3 --start
+		chonos-service -s dnsmasq -w 3 -t 3 --start
 		echo 0 > $EmbedMAS_HOME/conf/apMode.conf
 		/usr/bin/chonos-task -t "/usr/bin/chonosDDNSManager --update"
   	elif [ "$confFile" = "apmode" ]; then
@@ -163,11 +163,11 @@ if [ "$confFile" != "" ]; then
  		cat $confFile > /etc/wpa_supplicant/wpa_supplicant.conf
 		/sbin/wpa_supplicant -i $wlanInterface -c /etc/wpa_supplicant/wpa_supplicant.conf >> $EmbedMAS_LOGFILE 2>> $EmbedMAS_LOGFILE &
 		sleep 5
-		systemctl start networking
+		chonos-service -s networking -w 3 -t 3 --start
 		#systemctl start wpa_supplicant
-		systemctl start dhcpcd
-		systemctl start isc-dhcp-server
-		systemctl start dnsmasq
+		chonos-service -s dhcpcd -w 3 -t 3 --start
+		chonos-service -s isc-dhcp-server -w 3 -t 3 --start
+		chonos-service -s dnsmasq -w 3 -t 3 --start
 		chonos-log -e "[chonos-nettest] AP Mode Configured!"
  	fi
 	
