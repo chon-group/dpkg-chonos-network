@@ -20,13 +20,13 @@ done
 
 
 if [ "$opt" = "help" ]; then
-	cat $EmbedMAS_HOME/docs/scripts/chonosWifiConf.txt
+	echo "Manual available at: https://github.com/chon-group/dpkg-chonos-network"
 elif [ "$opt" = "forget" ]; then
 	chonos-log -e "[chonos-nettest] Forgetting WLANs..."
 	rm $EmbedMAS_HOME/conf/WLANs/lan_*.conf 2>/dev/null
 	cp $EmbedMAS_HOME/conf/WLANs/base.conf /etc/wpa_supplicant/wpa_supplicant.conf
 	 echo -n "{"
-        echo -n " \"message\":\"Esquecer Redes\","
+        echo -n " \"message\":\"Forgetting WLANs\","
         echo -n "  \"success\":\"true\""
     echo  "}"
 
@@ -90,7 +90,7 @@ if [ "$modeOperation" = "ap" ]; then
 		echo -n "  \"success\":\"true\"" >> $EmbedMAS_TMP/json.out
 	echo  "}" >> $EmbedMAS_TMP/json.out
 
-	chonos-log -e "Agendando AP WLAN Reconfigure ..."
+	chonos-log -e "Scheduling AP WLAN Reconfigure ..."
 	cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
 	/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -f apmode"
 	cat $EmbedMAS_TMP/json.out
@@ -99,7 +99,7 @@ if [ "$modeOperation" = "ap" ]; then
 elif [ "$modeOperation" = "default" ]; then
 	$EmbedMAS_HOME/bin/lan/wpa_file_generator.sh
 
-	chonos-log -e "[chonos-netmng] Agendando Default WLAN Reconfigure ..."
+	chonos-log -e "[chonos-netmng] Scheduling Default WLAN Reconfigure ..."
 	if [ "$driver" = "wext" ]; then
 		/usr/bin/chonos-task -t "/usr/bin/chonosWifiConf -f default -d wext"
 	else
@@ -116,7 +116,7 @@ elif [ "$modeOperation" = "client" ]; then
         echo -n "  \"success\":\"true\"" >> $EmbedMAS_TMP/json.out
 	echo  "}" >> $EmbedMAS_TMP/json.out
 
-	chonos-log -e "[chonos-netmng] Agendando WLAN Reconfigure ..."
+	chonos-log -e "[chonos-netmng] Scheduling WLAN Reconfigure ..."
 	cat $EmbedMAS_TMP/json.out >> $EmbedMAS_LOGFILE
 	
 	if [ "$opt" = "reboot" ]; then
@@ -146,13 +146,13 @@ if [ "$confFile" != "" ]; then
 		chonos-service -s networking -w 3 -t 3 --start
 		#systemctl start wpa_supplicant
 		if [ "$driver" = "wext" ]; then
-			chonos-log -e "[chonos-netmng] Tentando conectar na rede sem fio, utilizando o driver Wext"
+			chonos-log -e "[chonos-netmng] Trying to connect using Wext driver"
 			/sbin/wpa_supplicant -Dwext -i $wlanInterface -c /etc/wpa_supplicant/wpa_supplicant.conf &
 		else
-			chonos-log -e "[chonos-netmng] Tentando conectar na rede sem definir o driver"
+			chonos-log -e "[chonos-netmng] Trying to connect using Default driver"
 			/sbin/wpa_supplicant -i $wlanInterface -c /etc/wpa_supplicant/wpa_supplicant.conf &
 		fi
-		sleep 10
+		#sleep 10
 		chonos-service -s dhcpcd -w 3 -t 3 --start
 		chonos-service -s dnsmasq -w 3 -t 3 --start
 		echo 0 > $EmbedMAS_HOME/conf/apMode.conf
@@ -162,13 +162,12 @@ if [ "$confFile" != "" ]; then
   		confFile="$EmbedMAS_HOME/conf/WLANs/base.conf $EmbedMAS_HOME/conf/WLANs/modeApZeroConf.conf"
  		cat $confFile > /etc/wpa_supplicant/wpa_supplicant.conf
 		/sbin/wpa_supplicant -i $wlanInterface -c /etc/wpa_supplicant/wpa_supplicant.conf >> $EmbedMAS_LOGFILE 2>> $EmbedMAS_LOGFILE &
-		sleep 5
+		#sleep 5
 		chonos-service -s networking -w 3 -t 3 --start
 		#systemctl start wpa_supplicant
 		chonos-service -s dhcpcd -w 3 -t 3 --start
-		chonos-service -s isc-dhcp-server -w 3 -t 3 --start
+		chonos-service -s isc-dhcp-server -w 5 -t 4 --start
 		chonos-service -s dnsmasq -w 3 -t 3 --start
 		chonos-log -e "[chonos-nettest] AP Mode Configured!"
  	fi
-	
 fi
