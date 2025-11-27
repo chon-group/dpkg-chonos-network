@@ -1,10 +1,10 @@
 Package: chonos-network
-Version: 25.11.27
+Version: 25.11.28
 Priority:
 Architecture: all
 Essential:
 Depends: chonos-task (>= 25.11.26), chonos-ddnsmng (>= 1.6.1), chonos-log (>= 25.11.19)
-Pre-depends: dhcpcd5, wpasupplicant, isc-dhcp-server, dnsutils, dnsmasq, wireless-tools
+Pre-depends: dhcpcd5, wpasupplicant, isc-dhcp-server, dnsutils, dnsmasq, wireless-tools, isc-dhcp-client
 Suggests:
 Installed-Size:
 Maintainer: Nilson Lazarin <chon@grupo.cefet-rj.br>
