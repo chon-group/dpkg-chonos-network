@@ -17,7 +17,7 @@ if [ "$wlanInterface" = "" ]; then
 fi
 
 if [ "$opt" = "help" ]; then
-	cat $EmbedMAS_HOME/docs/scripts/chonosWifiConn.txt
+	echo "Manual available at: https://github.com/chon-group/dpkg-chonos-network"
 elif [ "$opt" = "list" ]; then
 	iwlist ${wlanInterface} scan > $EmbedMAS_TMP/wlans.list
 	qtd=`cat $EmbedMAS_TMP/wlans.list | grep "Cell" | nl | tail -1 | xargs | cut -d " " -f 1`
