@@ -46,7 +46,12 @@ elif [ "$opt" = "list" ]; then
 			i=$((i+1))  
 		done
 	echo "]" >> $EmbedMAS_TMP/json.out
-	cat $EmbedMAS_TMP/json.out
+
+	if [ "$(cat $EmbedMAS_TMP/json.out)" = "[]" ] && [ -f "$EmbedMAS_TMP/json.cache" ]; then
+		cat $EmbedMAS_TMP/json.cache
+	else
+		cat $EmbedMAS_TMP/json.out
+	fi
 
 elif [ "$opt" = "status" ]; then
 	mkdir -p $EmbedMAS_TMP
